@@ -1,0 +1,13 @@
+{application, esql_sqlite3,
+ [
+  {description, "esql driver for sqlite3"},
+  {vsn, "1"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {mod, { esql_sqlite3_app, []}},
+  {env, []}
+ ]}.
+
