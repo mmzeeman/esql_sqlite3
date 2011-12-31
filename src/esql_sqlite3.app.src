@@ -5,9 +5,10 @@
   {registered, []},
   {applications, [
                   kernel,
-                  stdlib
+                  stdlib,
+                  esqlite
                  ]},
-  {mod, { esql_sqlite3_app, []}},
+  {mod, { esql_sqlite3, []}},
   {env, []}
  ]}.
 
