@@ -15,13 +15,13 @@ open_single_database_test() ->
 
 open_commit_close_test() ->
     {ok, C} = esql:open(esql_sqlite3, [":memory:"]),
-    {error, esql_sqlite3, _Msg} = esql:commit(C), 
+    {error, esql_sqlite3, _Msg} = esql:commit(C),  %% No transaction is started.
     ok = esql:close(C),
     ok.
 
 open_rollback_close_test() ->
     {ok, C} = esql:open(esql_sqlite3, [":memory:"]),
-    {error, esql_sqlite3, _Msg} = esql:rollback(C),
+    {error, esql_sqlite3, _Msg} = esql:rollback(C), %% No transaction is started.
     ok = esql:close(C),
     ok.
 
