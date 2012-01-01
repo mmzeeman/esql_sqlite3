@@ -4,17 +4,16 @@
 
 -module(esql_sqlite3).
 
--include("esql.hrl").
+-include_lib("esql/include/esql.hrl").
 
 -behaviour(esql).
 
--export([open/1, run/3,  execute/3, close/1, commit/1, rollback/1, tables/1, describe_table/2]).
+-export([open/1, run/3,  execute/3, close/1, start_transaction/1, commit/1, rollback/1, tables/1, describe_table/2]).
 
 %% @doc Open a database connection
 %%
 open([DatabaseName]) ->
     {ok, C} = esqlite3:open(DatabaseName),
-    ok = esqlite3:exec(<<"BEGIN TRANSACTION;">>, C),
     {ok, C}.
 
 
@@ -70,12 +69,16 @@ execute(Sql, Args, Connection) ->
     end.
 
 %%
+start_transaction(Connection) ->
+    run(<<"START TRANSACTION;">>, [], Connection).
+
+%%
 commit(Connection) ->
-    ok = run(<<"COMMIT;">>, [], Connection).
+    run(<<"COMMIT;">>, [], Connection).
 
 %%
 rollback(Connection) ->
-    ok = run(<<"ROLLBACK;">>, [], Connection).
+    run(<<"ROLLBACK;">>, [], Connection).
 
 %% 
 tables(Connection) ->

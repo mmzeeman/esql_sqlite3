@@ -6,6 +6,7 @@
   {applications, [
                   kernel,
                   stdlib,
+                  esql,
                   esqlite
                  ]},
   {mod, { esql_sqlite3, []}},

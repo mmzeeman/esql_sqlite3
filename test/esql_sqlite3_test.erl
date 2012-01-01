@@ -4,7 +4,7 @@
 
 -module(esql_sqlite3_test).
 
--include("../src/edbc.hrl").
+-include_lib("esql/include/esql.hrl").
 
 -include_lib("eunit/include/eunit.hrl").
 
@@ -15,13 +15,13 @@ open_single_database_test() ->
 
 open_commit_close_test() ->
     {ok, C} = esql:open(esql_sqlite3, [":memory:"]),
-    ok = esql:commit(C),
+    {error, esql_sqlite3, _Msg} = esql:commit(C), 
     ok = esql:close(C),
     ok.
 
 open_rollback_close_test() ->
     {ok, C} = esql:open(esql_sqlite3, [":memory:"]),
-    ok = esql:rollback(C),
+    {error, esql_sqlite3, _Msg} = esql:rollback(C),
     ok = esql:close(C),
     ok.
 
@@ -82,20 +82,41 @@ column_names_test() ->
 %%
 execute_test() ->
     {ok, C} = esql:open(esql_sqlite3, [":memory:"]),
+
     ok = esql:run("create table table1(first_column char(50) not null, 
        second_column char(10), 
        third_column INTEGER default 10,
        CONSTRAINT pk_first_column PRIMARY KEY (first_column));", C),
 
     ok = esql:run("insert into table1 values(?, ?, ?);", ["hello", "world", 1], C),
+
+    %% ok = esql:execute("select * from table1", C),
+    R1 = esql:execute("select * from table1", C),
+    {ok, {first_column, second_column, third_column}, 
+     [
+      {"hello", "world", 1}
+     ]} = R1,
+
+    R2 = esql:execute("select t.first_column from table1 t", C),
     
     {ok, 
-     {first_column, second_column, third_column}, 
-     [{<<"hello">>, <<"world">>, 1}]} = esql:execute("select * from table1", C),
-
-    {ok, 
      {first_column}, 
-     [{<<"hello">>}]} = esql:execute("select t.first_column from table1 t", C),
+     [
+      {"hello"}
+     ]} = R2,
+
+    ok = esql:run("insert into table1 values(?, ?, ?);", [<<"spam">>, <<"eggs">>, 2], C),
+
+    R3 = esql:execute("select * from table1", C),
+    {ok, {first_column, second_column, third_column}, 
+     [{"hello", "world", 1},
+      {<<"spam">>, <<"eggs">>, 2}
+     ]} = R3,
+
+    R4 = esql:execute("select * from table1 where third_column=2", C),
+    {ok, {first_column, second_column, third_column}, 
+     [{<<"spam">>, <<"eggs">>, 2}
+     ]} = R4,
     
     ok.
     
