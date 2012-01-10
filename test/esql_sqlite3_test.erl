@@ -10,8 +10,7 @@
 
 open_single_database_test() ->
     {ok, C} = esql:open(esql_sqlite3, [":memory:"]),
-    ok = esql:close(C),
-    ok.
+    ok = esql:close(C).
 
 open_commit_close_test() ->
     {ok, C} = esql:open(esql_sqlite3, [":memory:"]),
