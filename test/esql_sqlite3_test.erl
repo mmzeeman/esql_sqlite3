@@ -91,7 +91,7 @@ execute_test() ->
 
     %% ok = esql:execute("select * from table1", C),
     R1 = esql:execute("select * from table1", C),
-    {ok, {first_column, second_column, third_column}, 
+    {ok, [first_column, second_column, third_column], 
      [
       {"hello", "world", 1}
      ]} = R1,
@@ -99,7 +99,7 @@ execute_test() ->
     R2 = esql:execute("select t.first_column from table1 t", C),
     
     {ok, 
-     {first_column}, 
+     [first_column], 
      [
       {"hello"}
      ]} = R2,
@@ -107,13 +107,13 @@ execute_test() ->
     ok = esql:run("insert into table1 values(?, ?, ?);", [<<"spam">>, <<"eggs">>, 2], C),
 
     R3 = esql:execute("select * from table1", C),
-    {ok, {first_column, second_column, third_column}, 
+    {ok, [first_column, second_column, third_column], 
      [{"hello", "world", 1},
       {<<"spam">>, <<"eggs">>, 2}
      ]} = R3,
 
     R4 = esql:execute("select * from table1 where third_column=2", C),
-    {ok, {first_column, second_column, third_column}, 
+    {ok, [first_column, second_column, third_column], 
      [{<<"spam">>, <<"eggs">>, 2}
      ]} = R4,
     

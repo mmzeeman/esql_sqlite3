@@ -51,7 +51,7 @@ execute(Sql, [], Connection) ->
 	{error, Error} ->
 	    {error, ?MODULE, Error};
 	{ok, Stmt} ->
-	    {ok, esqlite3:column_names(Stmt), esqlite3:fetchall(Stmt)}
+	    {ok, tuple_to_list(esqlite3:column_names(Stmt)), esqlite3:fetchall(Stmt)}
     end;
 execute(Sql, Args, Connection) ->
     case esqlite3:prepare(Sql, Connection) of
@@ -62,7 +62,7 @@ execute(Sql, Args, Connection) ->
 		ok ->
 		    Names = esqlite3:column_names(Stmt),
 		    Result = esqlite3:fetchall(Stmt),
-		    {ok, Names, Result};
+		    {ok, tuple_to_list(Names), Result};
 		{error, Error} ->
 		    {error, ?MODULE, Error}
 	    end
