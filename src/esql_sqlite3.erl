@@ -8,7 +8,7 @@
 
 -behaviour(esql).
 
--export([open/1, run/3,  execute/3, close/1, start_transaction/1, commit/1, rollback/1, tables/1, describe_table/2]).
+-export([open/1, run/3,  execute/3, execute/4, close/1, start_transaction/1, commit/1, rollback/1, tables/1, describe_table/2]).
 
 %% @doc Open a database connection
 %%
@@ -67,6 +67,68 @@ execute(Sql, Args, Connection) ->
 		    {error, ?MODULE, Error}
 	    end
     end.
+
+%% Asynchronous execute.. send answers when the arrive...
+execute(Sql, Args, Receiver, Connection) ->
+    Pid = spawn(fun() -> handle_async_execute(Sql, Args, Receiver, Connection) end),
+    {ok, Pid}.
+
+
+%%
+handle_async_execute(Sql, Args, Receiver, Connection) ->
+    case esqlite3:prepare(Sql, Connection) of
+	{error, Error} ->
+	    Receiver ! {error, ?MODULE, Error};
+	{ok, Stmt} ->
+	    case bind_args(Stmt, Args) of
+		{error, Error} ->
+		    Receiver ! {error, ?MODULE, Error};
+		ok ->
+		    %% Send the column names.
+		    Names = esqlite3:column_names(Stmt),
+		    Receiver ! {column_names, Names, self()},
+		    receive 
+			continue ->
+			    send_rows(Stmt, Receiver);
+			stop ->
+			    Receiver ! stopped
+		    after 
+			10000 ->
+			    %% TIMEOUT
+			    timeout
+		    end
+	    end
+    end.
+
+send_rows(Stmt, Receiver) ->
+    %% This one can be implemented directly in the low level driver.
+    
+    case esqlite3:step(Stmt) of
+	'$busy' ->
+	    %% wait... or better with exponential backoff?
+	    timer:sleep(100),
+	    send_rows(Stmt, Receiver);
+	'$done' ->
+	    Receiver ! done;
+	Row ->
+	    Receiver ! {row, Row},
+	    receive 
+		continue -> 
+		    send_rows(Stmt, Receiver);
+		stop ->
+		    Receiver ! stopped
+	    after
+		10000 ->
+		    %% TIMEOUT
+		    timeout
+	    end
+    end.
+
+%%
+bind_args(_Statement, []) ->
+    ok;
+bind_args(Statement, Args) ->
+    esqlite3:bind(Statement, Args).
 
 %%
 start_transaction(Connection) ->

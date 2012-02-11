@@ -5,7 +5,6 @@
 -module(esql_sqlite3_test).
 
 -include_lib("esql/include/esql.hrl").
-
 -include_lib("eunit/include/eunit.hrl").
 
 open_single_database_test() ->
@@ -119,3 +118,59 @@ execute_test() ->
     
     ok.
     
+%%
+%% Async execute test
+async_simple_execute_test() ->
+    {ok, C} = esql:open(esql_sqlite3, [":memory:"]),
+
+    %% Create a test table
+    ok = esql:run("create table table1(first_column char(50) not null, 
+       second_column char(10), 
+       third_column INTEGER default 10,
+       CONSTRAINT pk_first_column PRIMARY KEY (first_column));", C),
+
+    {ok, Ref} = esql:execute("select * from table1;", [], self(), C),
+
+    %% First get the column names.
+    {first_column, second_column, third_column} = receive 
+        {column_names, Cols, Ref}-> 
+           Ref ! continue,
+           Cols
+	end,
+ 
+    %% And then the query result. In this case nothing...
+    receive done -> ok end.
+
+%%
+%% Async execute test
+async_execute_test() ->
+    {ok, C} = esql:open(esql_sqlite3, [":memory:"]),
+
+    %% Create a test table
+    ok = esql:run("create table table1(first_column char(50) not null, 
+       second_column char(10), 
+       third_column INTEGER default 10,
+       CONSTRAINT pk_first_column PRIMARY KEY (first_column));", C),
+
+    Sql = "insert into table1 values(?, ?, ?);",
+
+    ok = esql:run(Sql, [<<"spam">>, <<"eggs">>, 1], C),
+    ok = esql:run(Sql, [<<"foo">>, <<"bar">>, 2], C),
+    ok = esql:run(Sql, [<<"zoto">>, <<"magic">>, 3], C),
+
+    {ok, Ref} = esql:execute("select * from table1 order by third_column;", [], self(), C),
+
+    %% First get the column names.
+    {first_column, second_column, third_column} = receive 
+        {column_names, Cols, Ref}-> 
+           Ref ! continue,
+           Cols
+	end,
+
+    %% Get the rows... 
+    {<<"spam">>, <<"eggs">>, 1} = receive {row, Row1} -> Ref ! continue, Row1; _ -> error end,
+    {<<"foo">>, <<"bar">>, 2} = receive {row, Row2} -> Ref ! continue, Row2; _ -> error end,
+    {<<"zoto">>, <<"magic">>, 3} = receive {row, Row3} -> Ref ! continue, Row3; _ -> error end,
+ 
+    %% And then the query result. In this case nothing...
+    receive done -> ok; _ -> error end.
