@@ -86,12 +86,12 @@ handle_async_execute(Sql, Args, Receiver, Connection) ->
 		ok ->
 		    %% Send the column names.
 		    Names = esqlite3:column_names(Stmt),
-		    Receiver ! {column_names, Names, self()},
+		    Receiver ! {self(), column_names, Names},
 		    receive 
 			continue ->
 			    send_rows(Stmt, Receiver);
 			stop ->
-			    Receiver ! stopped
+			    Receiver ! {self(), stopped}
 		    after 
 			10000 ->
 			    %% TIMEOUT
@@ -109,18 +109,18 @@ send_rows(Stmt, Receiver) ->
 	    timer:sleep(100),
 	    send_rows(Stmt, Receiver);
 	'$done' ->
-	    Receiver ! done;
+	    Receiver ! {self(), done};
 	Row ->
-	    Receiver ! {row, Row},
+	    Receiver ! {self(), row, Row},
 	    receive 
 		continue -> 
 		    send_rows(Stmt, Receiver);
 		stop ->
-		    Receiver ! stopped
+		    Receiver ! {self(), stopped}
 	    after
 		10000 ->
 		    %% TIMEOUT
-		    timeout
+		    {self(), timeout}
 	    end
     end.
 

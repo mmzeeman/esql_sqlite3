@@ -133,13 +133,13 @@ async_simple_execute_test() ->
 
     %% First get the column names.
     {first_column, second_column, third_column} = receive 
-        {column_names, Cols, Ref}-> 
+        {Ref, column_names, Cols}-> 
            Ref ! continue,
            Cols
 	end,
  
     %% And then the query result. In this case nothing...
-    receive done -> ok end.
+    receive {Ref, done} -> ok end.
 
 %%
 %% Async execute test
@@ -161,16 +161,12 @@ async_execute_test() ->
     {ok, Ref} = esql:execute("select * from table1 order by third_column;", [], self(), C),
 
     %% First get the column names.
-    {first_column, second_column, third_column} = receive 
-        {column_names, Cols, Ref}-> 
-           Ref ! continue,
-           Cols
-	end,
+    {column_names, {first_column, second_column, third_column}} = esql:step(Ref),
 
     %% Get the rows... 
-    {<<"spam">>, <<"eggs">>, 1} = receive {row, Row1} -> Ref ! continue, Row1; _ -> error end,
-    {<<"foo">>, <<"bar">>, 2} = receive {row, Row2} -> Ref ! continue, Row2; _ -> error end,
-    {<<"zoto">>, <<"magic">>, 3} = receive {row, Row3} -> Ref ! continue, Row3; _ -> error end,
- 
-    %% And then the query result. In this case nothing...
-    receive done -> ok; _ -> error end.
+    {row, {<<"spam">>, <<"eggs">>, 1}} = esql:step(Ref), 
+    {row, {<<"foo">>, <<"bar">>, 2}} = esql:step(Ref),
+    {row, {<<"zoto">>, <<"magic">>, 3}} = esql:step(Ref),
+
+    %% Done..
+    done = esql:step(Ref).
