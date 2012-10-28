@@ -174,10 +174,10 @@ async_execute_test() ->
 
 simple_pool_test() ->
     application:start(esql),
-    {ok, Pid} = esql_pool:create_pool(test_pool, 10, 
-                                      [{serialized, true}, {driver, esql_sqlite3}, 
+    {ok, _Pid} = esql_pool:create_pool(test_pool, 10, 
+                                      [{serialized, true}, 
+                                       {driver, esql_sqlite3}, 
                                        {args, [":memory:"]}]),
-    io:fwrite(standard_error, "Started pool ~p~n", [Pid]),
     ok = esql_pool:run("create table table1(first_column char(50) not null, 
        second_column char(10), 
        third_column INTEGER default 10,
@@ -189,10 +189,14 @@ simple_pool_test() ->
     ok = esql_pool:run(Sql, [<<"foo">>, <<"bar">>, 2], test_pool),
     ok = esql_pool:run(Sql, [<<"zoto">>, <<"magic">>, 3], test_pool),
 
-    R = esql_pool:execute("select * from table1;", [], test_pool),
+    {ok, Cols, Rows} = 
+        esql_pool:execute("select * from table1 order by first_column;", [], test_pool),
 
-    io:fwrite(standard_error, "Result ~p~n", [R]),
-
+    [first_column, second_column, third_column] = Cols,
+    [{<<"foo">>, <<"bar">>, 2},
+    {<<"spam">>, <<"eggs">>, 1},
+    {<<"zoto">>, <<"magic">>, 3}] = Rows,
+    
     esql_pool:delete_pool(test_pool),
     application:stop(esql).
 
