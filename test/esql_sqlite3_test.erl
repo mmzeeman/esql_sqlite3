@@ -136,7 +136,7 @@ async_simple_execute_test() ->
         {Ref, column_names, Cols}-> 
            Ref ! continue,
            Cols
-	end,
+        end,
  
     %% And then the query result. In this case nothing...
     receive {Ref, done} -> ok end.

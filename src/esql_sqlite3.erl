@@ -26,46 +26,46 @@ close(Connection) ->
 %%
 run(Sql, [], Connection) ->
     case esqlite3:exec(Sql, Connection) of
-	{error, Error} -> {error, ?MODULE, Error};
-	ok -> ok
+        {error, Error} -> {error, ?MODULE, Error};
+        ok -> ok
     end;
 run(Sql, Args, Connection) ->
     case esqlite3:prepare(Sql, Connection) of
-	{error, Error} ->
-	    {error, ?MODULE, Error};
-	{ok, Stmt} ->
-	    case esqlite3:bind(Stmt, Args) of
-		{error, Error} -> {error, ?MODULE, Error};
-		ok ->
-		    case esqlite3:fetchone(Stmt) of
-			{error, Error} -> {error, ?MODULE, Error};
-			_ -> ok
-		    end
-	    end
+        {error, Error} ->
+            {error, ?MODULE, Error};
+        {ok, Stmt} ->
+            case esqlite3:bind(Stmt, Args) of
+                {error, Error} -> {error, ?MODULE, Error};
+                ok ->
+                    case esqlite3:fetchone(Stmt) of
+                        {error, Error} -> {error, ?MODULE, Error};
+                        _ -> ok
+                    end
+            end
     end.
 
 %% @doc Execute a query and return the results
 %%
 execute(Sql, [], Connection) ->
     case esqlite3:prepare(Sql, Connection) of
-	{error, Error} ->
-	    {error, ?MODULE, Error};
-	{ok, Stmt} ->
-	    {ok, tuple_to_list(esqlite3:column_names(Stmt)), esqlite3:fetchall(Stmt)}
+        {error, Error} ->
+            {error, ?MODULE, Error};
+        {ok, Stmt} ->
+            {ok, tuple_to_list(esqlite3:column_names(Stmt)), esqlite3:fetchall(Stmt)}
     end;
 execute(Sql, Args, Connection) ->
     case esqlite3:prepare(Sql, Connection) of
-	{error, Error} ->
-	    {error, ?MODULE, Error};
-	{ok, Stmt} ->
-	    case esqlite3:bind(Stmt, Args) of
-		ok ->
-		    Names = esqlite3:column_names(Stmt),
-		    Result = esqlite3:fetchall(Stmt),
-		    {ok, tuple_to_list(Names), Result};
-		{error, Error} ->
-		    {error, ?MODULE, Error}
-	    end
+        {error, Error} ->
+            {error, ?MODULE, Error};
+        {ok, Stmt} ->
+            case esqlite3:bind(Stmt, Args) of
+                ok ->
+                    Names = esqlite3:column_names(Stmt),
+                    Result = esqlite3:fetchall(Stmt),
+                    {ok, tuple_to_list(Names), Result};
+                {error, Error} ->
+                    {error, ?MODULE, Error}
+            end
     end.
 
 %% Asynchronous execute.. send answers when the arrive...
@@ -77,51 +77,51 @@ execute(Sql, Args, Receiver, Connection) ->
 %%
 handle_async_execute(Sql, Args, Receiver, Connection) ->
     case esqlite3:prepare(Sql, Connection) of
-	{error, Error} ->
-	    Receiver ! {error, ?MODULE, Error};
-	{ok, Stmt} ->
-	    case bind_args(Stmt, Args) of
-		{error, Error} ->
-		    Receiver ! {error, ?MODULE, Error};
-		ok ->
-		    %% Send the column names.
-		    Names = esqlite3:column_names(Stmt),
-		    Receiver ! {self(), column_names, Names},
-		    receive 
-			continue ->
-			    send_rows(Stmt, Receiver);
-			stop ->
-			    Receiver ! {self(), stopped}
-		    after 
-			10000 ->
-			    %% TIMEOUT
-			    timeout
-		    end
-	    end
+        {error, Error} ->
+            Receiver ! {error, ?MODULE, Error};
+        {ok, Stmt} ->
+            case bind_args(Stmt, Args) of
+                {error, Error} ->
+                    Receiver ! {error, ?MODULE, Error};
+                ok ->
+                    %% Send the column names.
+                    Names = esqlite3:column_names(Stmt),
+                    Receiver ! {self(), column_names, Names},
+                    receive 
+                        continue ->
+                            send_rows(Stmt, Receiver);
+                        stop ->
+                            Receiver ! {self(), stopped}
+                    after 
+                        10000 ->
+                            %% TIMEOUT
+                            timeout
+                    end
+            end
     end.
 
 send_rows(Stmt, Receiver) ->
     %% This one can be implemented directly in the low level driver.
     
     case esqlite3:step(Stmt) of
-	'$busy' ->
-	    %% wait... or better with exponential backoff?
-	    timer:sleep(100),
-	    send_rows(Stmt, Receiver);
-	'$done' ->
-	    Receiver ! {self(), done};
-	Row ->
-	    Receiver ! {self(), row, Row},
-	    receive 
-		continue -> 
-		    send_rows(Stmt, Receiver);
-		stop ->
-		    Receiver ! {self(), stopped}
-	    after
-		10000 ->
-		    %% TIMEOUT
-		    {self(), timeout}
-	    end
+        '$busy' ->
+            %% wait... or better with exponential backoff?
+            timer:sleep(100),
+            send_rows(Stmt, Receiver);
+        '$done' ->
+            Receiver ! {self(), done};
+        Row ->
+            Receiver ! {self(), row, Row},
+            receive 
+                continue -> 
+                    send_rows(Stmt, Receiver);
+                stop ->
+                    Receiver ! {self(), stopped}
+            after
+                10000 ->
+                    %% TIMEOUT
+                    {self(), timeout}
+            end
     end.
 
 %%
@@ -145,16 +145,16 @@ rollback(Connection) ->
 %% 
 tables(Connection) ->
     esqlite3:map(fun({TableName}) -> list_to_atom(TableName) end, 
-		 <<"SELECT name FROM sqlite_master WHERE type='table' ORDER by name;">>, Connection).
+                 <<"SELECT name FROM sqlite_master WHERE type='table' ORDER by name;">>, Connection).
 
 %%
 describe_table(TableName, Connection) when is_atom(TableName) ->
     esqlite3:map(fun({_Cid, ColumnName, ColumnType, NotNull, Default, PrimaryKey}) -> 
-			 #esql_column_info{name=list_to_atom(ColumnName),
-					   type=ColumnType,
-					   default=Default,
-					   notnull=NotNull =/= 0,
-					   pk=PrimaryKey =/= 0}
-		 end,
-		 [<<"PRAGMA table_info('">>, atom_to_list(TableName), <<"');">>], Connection).
+                         #esql_column_info{name=list_to_atom(ColumnName),
+                                           type=ColumnType,
+                                           default=Default,
+                                           notnull=NotNull =/= 0,
+                                           pk=PrimaryKey =/= 0}
+                 end,
+                 [<<"PRAGMA table_info('">>, atom_to_list(TableName), <<"');">>], Connection).
 
