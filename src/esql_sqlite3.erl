@@ -26,8 +26,10 @@ close(Connection) ->
 %%
 run(Sql, [], Connection) ->
     case esqlite3:exec(Sql, Connection) of
-        {error, Error} -> {error, ?MODULE, Error};
-        ok -> ok
+        {error, Error} -> 
+            {error, ?MODULE, Error};
+        ok -> 
+            ok
     end;
 run(Sql, Args, Connection) ->
     case esqlite3:prepare(Sql, Connection) of
@@ -35,10 +37,12 @@ run(Sql, Args, Connection) ->
             {error, ?MODULE, Error};
         {ok, Stmt} ->
             case esqlite3:bind(Stmt, Args) of
-                {error, Error} -> {error, ?MODULE, Error};
+                {error, Error} -> 
+                    {error, ?MODULE, Error};
                 ok ->
                     case esqlite3:fetchone(Stmt) of
-                        {error, Error} -> {error, ?MODULE, Error};
+                        {error, Error} -> 
+                            {error, ?MODULE, Error};
                         _ -> ok
                     end
             end
@@ -70,7 +74,9 @@ execute(Sql, Args, Connection) ->
 
 %% Asynchronous execute.. send answers when the arrive...
 execute(Sql, Args, Receiver, Connection) ->
-    Pid = spawn(fun() -> handle_async_execute(Sql, Args, Receiver, Connection) end),
+    Pid = spawn(fun() -> 
+        handle_async_execute(Sql, Args, Receiver, Connection) 
+    end),
     {ok, Pid}.
 
 

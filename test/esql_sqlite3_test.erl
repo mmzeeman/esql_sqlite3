@@ -90,6 +90,7 @@ execute_test() ->
 
     %% ok = esql:execute("select * from table1", C),
     R1 = esql:execute("select * from table1", C),
+
     {ok, [first_column, second_column, third_column], 
      [
       {"hello", "world", 1}
@@ -175,9 +176,10 @@ async_execute_test() ->
 simple_pool_test() ->
     application:start(esql),
     {ok, _Pid} = esql_pool:create_pool(test_pool, 10, 
-                                      [{serialized, true}, 
+                                      [{serialized, false}, 
                                        {driver, esql_sqlite3}, 
-                                       {args, [":memory:"]}]),
+                                       {args, ["file:memdb1?mode=memory&cache=shared"]}]),
+
     ok = esql_pool:run("create table table1(first_column char(50) not null, 
        second_column char(10), 
        third_column INTEGER default 10,
@@ -194,10 +196,9 @@ simple_pool_test() ->
 
     [first_column, second_column, third_column] = Cols,
     [{<<"foo">>, <<"bar">>, 2},
-    {<<"spam">>, <<"eggs">>, 1},
-    {<<"zoto">>, <<"magic">>, 3}] = Rows,
+     {<<"spam">>, <<"eggs">>, 1},
+     {<<"zoto">>, <<"magic">>, 3}] = Rows,
     
     esql_pool:delete_pool(test_pool),
-    application:stop(esql).
-
+    ok.
 
