@@ -8,7 +8,19 @@
 
 -behaviour(esql).
 
--export([open/1, run/3,  execute/3, execute/4, close/1, start_transaction/1, commit/1, rollback/1, tables/1, describe_table/2]).
+%% esql behaviour callbacks
+-export([
+    open/1, 
+    run/3,  
+    execute/3, execute/4, 
+    close/1, 
+    start_transaction/1, 
+    commit/1, 
+    rollback/1,
+    table_exists/2, 
+    tables/1, 
+    describe_table/2
+]).
 
 %% @doc Open a database connection
 %%
@@ -148,12 +160,21 @@ commit(Connection) ->
 rollback(Connection) ->
     run(<<"ROLLBACK;">>, [], Connection).
 
-%% 
+
+%% @doc return true iff the table exists.
+table_exists(Name, Connection) ->
+    case esqlite3:q(<<"SELECT count(type) FROM sqlite_master WHERE type='table' and name=?;">>, 
+                [Name], Connection) of
+        [{1}] -> true;
+        [{0}] -> false
+    end.
+
+%% @doc Return a list with all tables.
 tables(Connection) ->
     esqlite3:map(fun({TableName}) -> list_to_atom(TableName) end, 
                  <<"SELECT name FROM sqlite_master WHERE type='table' ORDER by name;">>, Connection).
 
-%%
+%% @doc Return a descripion of the table.
 describe_table(TableName, Connection) when is_atom(TableName) ->
     esqlite3:map(fun({_Cid, ColumnName, ColumnType, NotNull, Default, PrimaryKey}) -> 
                          #esql_column_info{name=list_to_atom(ColumnName),

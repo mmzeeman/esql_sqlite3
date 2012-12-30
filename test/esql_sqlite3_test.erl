@@ -47,6 +47,17 @@ tables_test() ->
     ok = esql:run("drop table table3;", C),
     [] = esql:tables(C), 
     ok.
+
+%%
+%%
+table_exists_test() ->
+    {ok, C} = esql:open(esql_sqlite3, [":memory:"]),
+    false = esql:table_exists("table1", C),
+    ok = esql:run("create table table1(first_column text);", C),
+    true = esql:table_exists("table1", C),
+    ok = esql:run("drop table table1;", C),
+    false = esql:table_exists("table1", C),
+    ok.
     
 %%
 %%
