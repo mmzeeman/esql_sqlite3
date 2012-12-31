@@ -1,5 +1,5 @@
 %%
-%%
+%% Tests for sqlite3
 %%
 
 -module(esql_sqlite3_test).
@@ -185,12 +185,37 @@ async_execute_test() ->
     %% Done..
     done = esql:step(Ref).
 
+execute1_test() ->
+    {ok, C} = esql:open(esql_sqlite3, [":memory:"]),
+
+    ok = esql:run("create table table1(first_column char(50) not null, 
+       second_column char(10), 
+       third_column INTEGER default 10,
+       CONSTRAINT pk_first_column PRIMARY KEY (first_column));", C),
+
+    ?assertEqual({error, noresult}, esql:execute1(<<"select * from table1">>, C)),
+    ok = esql:run("insert into table1 values('spam', 'eggs', 1)", C),
+    ?assertEqual({ok,{"spam","eggs",1}}, 
+        esql:execute1(<<"select * from table1">>, C)), 
+    ok = esql:run("insert into table1 values('green', 'tomatos', 2)", C),           
+
+    ?assertEqual({ok,{"spam","eggs",1}}, 
+        esql:execute1(<<"SELECT * FROM table1 ORDER BY third_column;">>, C)), 
+    ?assertEqual({ok,{"green","tomatos",2}}, 
+        esql:execute1(<<"SELECT * FROM table1 ORDER BY third_column DESC;">>, C)), 
+
+    ?assertEqual({ok,{"spam","eggs",1}}, 
+        esql:execute1(<<"SELECT * FROM table1 ORDER BY third_column LIMIT 1;">>, C)),
+    ?assertEqual({error, noresult}, 
+        esql:execute1(<<"SELECT * FROM table1 ORDER BY third_column LIMIT 0;">>, C)),
+
+    ok.
+
 
 simple_pool_test() ->
     application:start(esql),
     {ok, _Pid} = esql_pool:create_pool(test_pool, 10, 
-                                      [{serialized, true}, 
-                                       {driver, esql_sqlite3}, 
+                                      [{driver, esql_sqlite3}, 
                                        {args, ["file:memdb1?mode=memory&cache=shared"]}]),
 
     ok = esql_pool:run("create table table1(first_column char(50) not null, 
