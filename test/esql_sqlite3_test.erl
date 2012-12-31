@@ -99,23 +99,15 @@ execute_test() ->
 
     ok = esql:run("insert into table1 values(?, ?, ?);", ["hello", "world", 1], C),
 
-    %% ok = esql:execute("select * from table1", C),
     R1 = esql:execute("select * from table1", C),
-
 
     ?assertEqual(
     {ok, [first_column, second_column, third_column], 
-     [
-                {<<"hello">>, <<"world">>, 1}
-     ]}, R1),
+     [{<<"hello">>, <<"world">>, 1}]}, R1),
 
     R2 = esql:execute("select t.first_column from table1 t", C),
     
-    ?assertEqual({ok, 
-     [first_column], 
-     [
-                {<<"hello">>}
-     ]}, R2),
+    ?assertEqual({ok, [first_column], [{<<"hello">>}]}, R2),
 
     ok = esql:run("insert into table1 values(?, ?, ?);", [<<"spam">>, <<"eggs">>, 2], C),
 
@@ -211,6 +203,22 @@ execute1_test() ->
 
     ok.
 
+table_meta_test() ->
+    {ok, C} = esql:open(esql_sqlite3, [":memory:"]),
+
+    ?assertEqual(false, esql:table_exists("test", C)),
+
+    ok = esql:run("create table table1(first_column char(50) not null, 
+       second_column char(10), 
+       third_column INTEGER default 10,
+       CONSTRAINT pk_first_column PRIMARY KEY (first_column));", C),
+
+    ?assertEqual(true, esql:table_exists(table1, C)),
+    %% TODO: fixme, bind has a problem
+    % ?assertEqual(true, esql:table_exists("table1", C)), 
+    % ?assertEqual(true, esql:table_exists(<<"table1">>, C)),
+
+    ok.
 
 simple_pool_test() ->
     application:start(esql),

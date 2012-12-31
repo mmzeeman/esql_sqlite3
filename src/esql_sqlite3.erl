@@ -137,7 +137,6 @@ send_rows(Stmt, Receiver) ->
                     Receiver ! {self(), stopped}
             after
                 10000 ->
-                    %% TIMEOUT
                     {self(), timeout}
             end
     end.
@@ -160,10 +159,9 @@ commit(Connection) ->
 rollback(Connection) ->
     run(<<"ROLLBACK;">>, [], Connection).
 
-
 %% @doc return true iff the table exists.
 table_exists(Name, Connection) ->
-    case esqlite3:q(<<"SELECT count(type) FROM sqlite_master WHERE type='table' and name=?;">>, 
+    case esqlite3:q(<<"SELECT count(type) FROM sqlite_master WHERE type='table' AND name=?;">>, 
                 [Name], Connection) of
         [{1}] -> true;
         [{0}] -> false
