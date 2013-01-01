@@ -128,7 +128,7 @@ send_rows(Stmt, Receiver) ->
             send_rows(Stmt, Receiver);
         '$done' ->
             Receiver ! {self(), done};
-        Row ->
+        {row, Row} ->
             Receiver ! {self(), row, Row},
             receive 
                 continue -> 
@@ -160,6 +160,8 @@ rollback(Connection) ->
     run(<<"ROLLBACK;">>, [], Connection).
 
 %% @doc return true iff the table exists.
+table_exists(Name, Connection) when is_binary(Name) ->
+    table_exists([Name], Connection);
 table_exists(Name, Connection) ->
     case esqlite3:q(<<"SELECT count(type) FROM sqlite_master WHERE type='table' AND name=?;">>, 
                 [Name], Connection) of

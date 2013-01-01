@@ -13,20 +13,20 @@ open_single_database_test() ->
 
 open_commit_close_test() ->
     {ok, C} = esql:open(esql_sqlite3, [":memory:"]),
-    {error, esql_sqlite3, _Msg} = esql:commit(C),  %% No transaction is started.
+    ?assertMatch({error, esql_sqlite3, _Msg}, esql:commit(C)),  %% No transaction is started.
     ok = esql:close(C),
     ok.
 
 open_rollback_close_test() ->
     {ok, C} = esql:open(esql_sqlite3, [":memory:"]),
-    {error, esql_sqlite3, _Msg} = esql:rollback(C), %% No transaction is started.
+    ?assertMatch({error, esql_sqlite3, _Msg}, esql:rollback(C)), %% No transaction is started.
     ok = esql:close(C),
     ok.
 
 sql_syntax_error_test() ->
     {ok, C} = esql:open(esql_sqlite3, [":memory:"]),
-    {error, esql_sqlite3, Msg} = esql:run("dit is geen sql", C),
-    {sqlite3_error, "near \"dit\": syntax error"} = Msg,
+    ?assertEqual({error, esql_sqlite3, {sqlite_error, "near \"dit\": syntax error"}}, 
+        esql:run("dit is geen sql", C)),
     ok.
 
 %%
@@ -35,17 +35,17 @@ tables_test() ->
     {ok, C} = esql:open(esql_sqlite3, [":memory:"]),
     [] = esql:tables(C),
     ok = esql:run("create table table1(first_column char(50), second_column char(10));", C),
-    [table1] = esql:tables(C),
+    ?assertEqual([table1], esql:tables(C)),
     ok = esql:run("create table table2(first_column char(50), second_column char(10));", C),
-    [table1, table2] = esql:tables(C),
+    ?assertEqual([table1, table2], esql:tables(C)),
     ok = esql:run("create table table3(first_column char(50), second_column char(10));", C),
-    [table1, table2, table3] = esql:tables(C),
+    ?assertEqual([table1, table2, table3], esql:tables(C)),
     ok = esql:run("drop table table2;", C),
-    [table1, table3] = esql:tables(C),
+    ?assertEqual([table1, table3], esql:tables(C)),
     ok = esql:run("drop table table1;", C),
-    [table3] = esql:tables(C),
+    ?assertEqual([table3], esql:tables(C)),
     ok = esql:run("drop table table3;", C),
-    [] = esql:tables(C), 
+    ?assertEqual([], esql:tables(C)), 
     ok.
 
 %%
@@ -103,17 +103,17 @@ execute_test() ->
 
     ?assertEqual(
     {ok, [first_column, second_column, third_column], 
-     [{<<"hello">>, <<"world">>, 1}]}, R1),
+     [{"hello", "world", 1}]}, R1),
 
     R2 = esql:execute("select t.first_column from table1 t", C),
     
-    ?assertEqual({ok, [first_column], [{<<"hello">>}]}, R2),
+    ?assertEqual({ok, [first_column], [{"hello"}]}, R2),
 
     ok = esql:run("insert into table1 values(?, ?, ?);", [<<"spam">>, <<"eggs">>, 2], C),
 
     R3 = esql:execute("select * from table1", C),
     ?assertEqual({ok, [first_column, second_column, third_column], 
-     [{<<"hello">>, <<"world">>, 1},
+     [{"hello", "world", 1},
       {<<"spam">>, <<"eggs">>, 2}
      ]}, R3),
 
@@ -170,9 +170,9 @@ async_execute_test() ->
     {column_names, {first_column, second_column, third_column}} = esql:step(Ref),
 
     %% Get the rows... 
-    {row, {<<"spam">>, <<"eggs">>, 1}} = esql:step(Ref), 
-    {row, {<<"foo">>, <<"bar">>, 2}} = esql:step(Ref),
-    {row, {<<"zoto">>, <<"magic">>, 3}} = esql:step(Ref),
+    ?assertEqual({row, {<<"spam">>, <<"eggs">>, 1}}, esql:step(Ref)), 
+    ?assertEqual({row, {<<"foo">>, <<"bar">>, 2}}, esql:step(Ref)),
+    ?assertEqual({row, {<<"zoto">>, <<"magic">>, 3}}, esql:step(Ref)),
 
     %% Done..
     done = esql:step(Ref).
@@ -214,9 +214,8 @@ table_meta_test() ->
        CONSTRAINT pk_first_column PRIMARY KEY (first_column));", C),
 
     ?assertEqual(true, esql:table_exists(table1, C)),
-    %% TODO: fixme, bind has a problem
-    % ?assertEqual(true, esql:table_exists("table1", C)), 
-    % ?assertEqual(true, esql:table_exists(<<"table1">>, C)),
+    ?assertEqual(true, esql:table_exists("table1", C)), 
+    ?assertEqual(true, esql:table_exists(<<"table1">>, C)),
 
     ok.
 
