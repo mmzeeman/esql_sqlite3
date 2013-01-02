@@ -219,6 +219,20 @@ table_meta_test() ->
 
     ok.
 
+pragma_test() ->
+    %% no pragma.
+    ?assertMatch({ok, _C1}, esql:open(esql_sqlite3, [":memory:"])),
+
+    %% one pragma.
+    ?assertMatch({ok, _C2}, esql:open(esql_sqlite3, [":memory:", [
+        {pragma, "case_sensitive_like = 1"}]])),
+
+    %% more pragma's.
+    ?assertMatch({ok, _C3}, esql:open(esql_sqlite3, [":memory:", [
+        {pragma, "encoding = \"UTF-8\""}, {pragma, "case_sensitive_like=1"}]])),
+
+    ok.
+
 simple_pool_test() ->
     application:start(esql),
     {ok, _Pid} = esql_pool:create_pool(test_pool, 10, 

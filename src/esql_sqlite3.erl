@@ -25,9 +25,20 @@
 %% @doc Open a database connection
 %%
 open([DatabaseName]) ->
+    open([DatabaseName, []]);
+open([DatabaseName, Options]) ->
     {ok, C} = esqlite3:open(DatabaseName),
-    {ok, C}.
 
+    % Handle pragma's.
+    case proplists:get_all_values(pragma, Options) of
+        [] -> {ok, C};
+        Pragmas ->
+            case esqlite3:exec([[<<"PRAGMA ">>, P, $;] || P <- Pragmas], C) of
+                ok -> {ok, C};
+                Other -> 
+                    {error, {pragma_error, Other}}
+            end
+    end.
 
 %% @doc Close the connection
 %%
