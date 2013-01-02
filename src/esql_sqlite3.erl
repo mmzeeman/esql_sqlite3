@@ -160,8 +160,6 @@ rollback(Connection) ->
     run(<<"ROLLBACK;">>, [], Connection).
 
 %% @doc return true iff the table exists.
-table_exists(Name, Connection) when is_binary(Name) ->
-    table_exists([Name], Connection);
 table_exists(Name, Connection) ->
     case esqlite3:q(<<"SELECT count(type) FROM sqlite_master WHERE type='table' AND name=?;">>, 
                 [Name], Connection) of
@@ -171,17 +169,17 @@ table_exists(Name, Connection) ->
 
 %% @doc Return a list with all tables.
 tables(Connection) ->
-    esqlite3:map(fun({TableName}) -> list_to_atom(TableName) end, 
+    esqlite3:map(fun({Name}) -> erlang:binary_to_atom(Name, utf8) end, 
                  <<"SELECT name FROM sqlite_master WHERE type='table' ORDER by name;">>, Connection).
 
 %% @doc Return a descripion of the table.
 describe_table(TableName, Connection) when is_atom(TableName) ->
     esqlite3:map(fun({_Cid, ColumnName, ColumnType, NotNull, Default, PrimaryKey}) -> 
-                         #esql_column_info{name=list_to_atom(ColumnName),
-                                           type=ColumnType,
-                                           default=Default,
-                                           notnull=NotNull =/= 0,
-                                           pk=PrimaryKey =/= 0}
+                    #esql_column_info{name=erlang:binary_to_atom(ColumnName, utf8),
+                                      type=ColumnType,
+                                      default=Default,
+                                      notnull=NotNull =/= 0,
+                                      pk=PrimaryKey =/= 0}
                  end,
-                 [<<"PRAGMA table_info('">>, atom_to_list(TableName), <<"');">>], Connection).
+                 [<<"PRAGMA table_info('">>, erlang:atom_to_binary(TableName, utf8), <<"');">>], Connection).
 

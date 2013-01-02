@@ -103,17 +103,17 @@ execute_test() ->
 
     ?assertEqual(
     {ok, [first_column, second_column, third_column], 
-     [{"hello", "world", 1}]}, R1),
+     [{<<"hello">>, <<"world">>, 1}]}, R1),
 
     R2 = esql:execute("select t.first_column from table1 t", C),
     
-    ?assertEqual({ok, [first_column], [{"hello"}]}, R2),
+    ?assertEqual({ok, [first_column], [{<<"hello">>}]}, R2),
 
     ok = esql:run("insert into table1 values(?, ?, ?);", [<<"spam">>, <<"eggs">>, 2], C),
 
     R3 = esql:execute("select * from table1", C),
     ?assertEqual({ok, [first_column, second_column, third_column], 
-     [{"hello", "world", 1},
+     [{<<"hello">>, <<"world">>, 1},
       {<<"spam">>, <<"eggs">>, 2}
      ]}, R3),
 
@@ -187,16 +187,16 @@ execute1_test() ->
 
     ?assertEqual({error, noresult}, esql:execute1(<<"select * from table1">>, C)),
     ok = esql:run("insert into table1 values('spam', 'eggs', 1)", C),
-    ?assertEqual({ok,{"spam","eggs",1}}, 
+    ?assertEqual({ok,{<<"spam">>,<<"eggs">>,1}}, 
         esql:execute1(<<"select * from table1">>, C)), 
     ok = esql:run("insert into table1 values('green', 'tomatos', 2)", C),           
 
-    ?assertEqual({ok,{"spam","eggs",1}}, 
+    ?assertEqual({ok,{<<"spam">>,<<"eggs">>,1}}, 
         esql:execute1(<<"SELECT * FROM table1 ORDER BY third_column;">>, C)), 
-    ?assertEqual({ok,{"green","tomatos",2}}, 
+    ?assertEqual({ok,{<<"green">>,<<"tomatos">>,2}}, 
         esql:execute1(<<"SELECT * FROM table1 ORDER BY third_column DESC;">>, C)), 
 
-    ?assertEqual({ok,{"spam","eggs",1}}, 
+    ?assertEqual({ok,{<<"spam">>,<<"eggs">>,1}}, 
         esql:execute1(<<"SELECT * FROM table1 ORDER BY third_column LIMIT 1;">>, C)),
     ?assertEqual({error, noresult}, 
         esql:execute1(<<"SELECT * FROM table1 ORDER BY third_column LIMIT 0;">>, C)),
